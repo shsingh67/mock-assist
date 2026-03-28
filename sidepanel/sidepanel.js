@@ -518,6 +518,12 @@
     const text = userInput.value.trim();
     if (!text || !state.sessionActive) return;
 
+    // Stop mic when sending so AI response / TTS doesn't get recorded
+    if (state.isRecording) {
+      state._micWasActive = true;
+      stopRecording();
+    }
+
     state.messages.push({ role: 'user', content: text });
     addMessageToUI('user', text);
     userInput.value = '';
@@ -568,6 +574,16 @@
 
         if (state.ttsEnabled && speechBuffer.trim()) {
           speakText(speechBuffer.trim(), false);
+        }
+
+        // Restart mic after all TTS finishes (or immediately if TTS is off)
+        if (state._micWasActive) {
+          waitForTTSDone(() => {
+            $('voice-indicator').className = '';
+            setText($('voice-label'), 'Ready');
+            state._micWasActive = false;
+            toggleMic();
+          });
         }
 
         if (onComplete) onComplete();
@@ -779,16 +795,19 @@
     setText($('voice-label'), 'Ready');
   }
 
-  function resumeMicAfterTTS() {
-    if (!state.micPausedForTTS) return;
-    state.micPausedForTTS = false;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    setTimeout(() => {
-      startRecognition(SpeechRecognition);
-    }, 400);
+  /** Wait until speechSynthesis is done speaking, then call the callback. */
+  function waitForTTSDone(callback) {
+    if (!window.speechSynthesis || !window.speechSynthesis.speaking) {
+      callback();
+      return;
+    }
+    const check = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(check);
+        callback();
+      }
+    }, 200);
   }
 
   // ── Voice: Text-to-Speech ──
@@ -909,26 +928,9 @@
 
     if (!queue.length) return;
 
-    // Pause mic while speaking to avoid feedback loop
     queue[0].onstart = () => {
       $('voice-indicator').className = 'speaking';
       setText($('voice-label'), 'Speaking...');
-      if (state.isRecording && state.recognition) {
-        try { state.recognition.abort(); } catch { /* ignore */ }
-        state.micPausedForTTS = true;
-      }
-    };
-
-    const last = queue[queue.length - 1];
-    last.onend = () => {
-      $('voice-indicator').className = '';
-      setText($('voice-label'), 'Ready');
-      resumeMicAfterTTS();
-    };
-    last.onerror = () => {
-      $('voice-indicator').className = '';
-      setText($('voice-label'), 'Ready');
-      resumeMicAfterTTS();
     };
 
     queue.forEach((u) => window.speechSynthesis.speak(u));
