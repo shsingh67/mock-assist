@@ -220,11 +220,16 @@
     window.addEventListener('beforeunload', cleanup);
   }
 
+  let _ttsActive = false;
+  let _ttsDoneTimer = null;
+
   function cleanup() {
     if (state.timerInterval) clearInterval(state.timerInterval);
     if (state.streamController) state.streamController.abort();
     if (state.recognition) state.recognition.abort();
     window.speechSynthesis?.cancel();
+    _ttsActive = false;
+    if (_ttsDoneTimer) { clearInterval(_ttsDoneTimer); _ttsDoneTimer = null; }
   }
 
   function updateSetupUI() {
@@ -555,8 +560,9 @@
           waitForTTSDone(() => {
             $('voice-indicator').className = '';
             setText($('voice-label'), 'Ready');
+            _ttsActive = false;
             state._micWasActive = false;
-            toggleMic();
+            if (!state.isRecording) toggleMic();
           });
         }
 
@@ -765,16 +771,26 @@
   }
 
   function waitForTTSDone(callback) {
+    if (_ttsDoneTimer) clearInterval(_ttsDoneTimer);
+
     if (!window.speechSynthesis || !window.speechSynthesis.speaking) {
       callback();
       return;
     }
-    const check = setInterval(() => {
+
+    let silentChecks = 0;
+    _ttsDoneTimer = setInterval(() => {
       if (!window.speechSynthesis.speaking) {
-        clearInterval(check);
-        callback();
+        silentChecks++;
+        if (silentChecks >= 2) {
+          clearInterval(_ttsDoneTimer);
+          _ttsDoneTimer = null;
+          callback();
+        }
+      } else {
+        silentChecks = 0;
       }
-    }, 200);
+    }, 250);
   }
 
   function toggleTTS() {
@@ -892,10 +908,13 @@
 
     if (!queue.length) return;
 
-    queue[0].onstart = () => {
-      $('voice-indicator').className = 'speaking';
-      setText($('voice-label'), 'Speaking...');
-    };
+    if (!_ttsActive) {
+      queue[0].onstart = () => {
+        $('voice-indicator').className = 'speaking';
+        setText($('voice-label'), 'Speaking...');
+      };
+      _ttsActive = true;
+    }
 
     queue.forEach((u) => window.speechSynthesis.speak(u));
   }
