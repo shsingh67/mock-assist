@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Assist</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <div class="header-top">
+        <h1>Mock Assist</h1>
+        <button id="settings-btn" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+      <div id="mode-selector">
+        <button class="mode-btn active" data-mode="coding">Coding</button>
+        <button class="mode-btn" data-mode="system-design">System Design</button>
+        <button class="mode-btn" data-mode="behavioral">Behavioral</button>
+      </div>
+    </header>
+
+    <!-- API Key Setup -->
+    <div id="setup-panel">
+      <p>Choose your AI provider.</p>
+      <div class="provider-selector">
+        <button class="provider-btn active" data-provider="ollama">Ollama (Free)</button>
+        <button class="provider-btn" data-provider="gemini">Gemini</button>
+        <button class="provider-btn" data-provider="claude">Claude</button>
+        <button class="provider-btn" data-provider="openai">ChatGPT</button>
+      </div>
+      <div id="key-input-section">
+        <div class="key-input-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+          <button id="save-key-btn">Save</button>
+        </div>
+      </div>
+      <div id="ollama-info" hidden>
+        <p class="hint">Runs 100% locally on your machine. No API key, no cost, no data leaves your computer.</p>
+        <p class="hint" style="margin-top:4px">Install: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px">brew install ollama</code></p>
+        <p class="hint" style="margin-top:4px">Then pull a model: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px">ollama pull llama3.1</code></p>
+        <button id="ollama-connect-btn" class="btn-primary" style="margin-top:12px;width:100%">Connect to Ollama</button>
+      </div>
+      <div id="key-status" hidden></div>
+      <p id="key-hint" class="hint">Your key is encrypted at rest and only sent to your chosen provider's API.</p>
+    </div>
+
+    <!-- Session Info -->
+    <div id="session-info" hidden>
+      <span id="problem-title">Waiting for problem...</span>
+      <span id="timer">00:00</span>
+    </div>
+
+    <!-- Context Input (for system design / behavioral modes) -->
+    <div id="context-input" hidden>
+      <textarea id="context-text" placeholder="Paste a system design topic or job description..." rows="4"></textarea>
+    </div>
+
+    <!-- Chat -->
+    <div id="chat-container" hidden>
+      <div id="messages"></div>
+    </div>
+
+    <!-- User Input -->
+    <div id="input-area" hidden>
+      <button id="mic-btn" class="voice-btn" title="Hold to speak (or click to toggle)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <textarea id="user-input" placeholder="Type or hold mic to speak..." rows="2"></textarea>
+      <button id="send-btn" title="Send">&#9654;</button>
+    </div>
+
+    <!-- Voice controls bar -->
+    <div id="voice-bar" hidden>
+      <div id="voice-status">
+        <span id="voice-indicator"></span>
+        <span id="voice-label">Ready</span>
+      </div>
+      <button id="tts-toggle" class="voice-btn active" title="Toggle interviewer voice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path class="tts-wave" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path class="tts-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          <line class="tts-mute" x1="23" y1="9" x2="17" y2="15"/>
+          <line class="tts-mute" x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls" hidden>
+      <button id="start-btn" class="btn-primary">Start Interview</button>
+      <button id="end-btn" class="btn-danger" hidden>End &amp; Get Score</button>
+    </div>
+
+    <!-- Summary -->
+    <div id="summary-panel" hidden>
+      <h2>Interview Summary</h2>
+      <div id="summary-content"></div>
+      <button id="new-session-btn" class="btn-primary">New Session</button>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" hidden>
+      <div class="settings-card">
+        <h2>Settings</h2>
+        <label>
+          Provider
+          <select id="settings-provider">
+            <option value="ollama">Ollama (Free, Local)</option>
+            <option value="gemini">Gemini (Free Tier)</option>
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">ChatGPT (OpenAI)</option>
+          </select>
+        </label>
+        <label>
+          API Key
+          <input type="password" id="settings-api-key" placeholder="sk-ant-..." autocomplete="off">
+        </label>
+        <label>
+          Model
+          <select id="settings-model">
+          </select>
+        </label>
+        <label>
+          Interview Style
+          <select id="settings-style">
+            <option value="strict">Strict</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="friendly">Friendly</option>
+          </select>
+        </label>
+        <div class="settings-actions">
+          <button id="settings-save" class="btn-primary">Save</button>
+          <button id="settings-cancel">Cancel</button>
+        </div>
+        <hr class="settings-divider">
+        <button id="edit-prompts-btn" class="btn-secondary">Edit Prompts</button>
+        <hr class="settings-divider">
+        <button id="settings-wipe" class="btn-wipe">Wipe All Data</button>
+        <p class="hint">Deletes your API key, settings, and session history.</p>
+      </div>
+    </div>
+
+    <!-- Prompt Editor Overlay -->
+    <div id="prompt-editor" hidden>
+      <div class="prompt-editor-card">
+        <div class="prompt-editor-header">
+          <h2>Edit Prompts</h2>
+          <button id="prompt-editor-close" class="prompt-close-btn" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="prompt-tabs">
+          <button class="prompt-tab active" data-tab="custom">Custom Rules</button>
+          <button class="prompt-tab" data-tab="coding">Coding</button>
+          <button class="prompt-tab" data-tab="system-design">System Design</button>
+          <button class="prompt-tab" data-tab="behavioral">Behavioral</button>
+        </div>
+
+        <div class="prompt-tab-content" data-for="custom">
+          <p class="hint" style="margin-bottom:8px">These instructions are added to every interview mode. Use this for things like "Always ask about Big-O" or "Speak in Spanish".</p>
+          <textarea id="prompt-custom" rows="8" placeholder="e.g., Always start by asking the candidate about their experience level..."></textarea>
+        </div>
+
+        <div class="prompt-tab-content" data-for="coding" hidden>
+          <p class="hint" style="margin-bottom:8px">The full system prompt for coding interviews. Use {{title}}, {{difficulty}}, and {{description}} as placeholders for the problem.</p>
+          <textarea id="prompt-coding" rows="12"></textarea>
+          <button class="prompt-reset-btn" data-mode="coding">Reset to Default</button>
+        </div>
+
+        <div class="prompt-tab-content" data-for="system-design" hidden>
+          <p class="hint" style="margin-bottom:8px">The full system prompt for system design interviews. Use {{topic}} as a placeholder.</p>
+          <textarea id="prompt-system-design" rows="12"></textarea>
+          <button class="prompt-reset-btn" data-mode="system-design">Reset to Default</button>
+        </div>
+
+        <div class="prompt-tab-content" data-for="behavioral" hidden>
+          <p class="hint" style="margin-bottom:8px">The full system prompt for behavioral interviews. Use {{jobDescription}} as a placeholder.</p>
+          <textarea id="prompt-behavioral" rows="12"></textarea>
+          <button class="prompt-reset-btn" data-mode="behavioral">Reset to Default</button>
+        </div>
+
+        <div class="prompt-editor-actions">
+          <button id="prompt-save" class="btn-primary">Save Prompts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../lib/storage.js"></script>
+  <script src="../lib/claude-api.js"></script>
+  <script src="../lib/prompts.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
