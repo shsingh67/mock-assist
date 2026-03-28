@@ -674,11 +674,14 @@
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = true;
-    recognition.continuous = false; // Non-continuous — restarts after each utterance
+    recognition.continuous = true;
+
+    let processedCount = 0;
 
     recognition.onstart = () => {
       state.isRecording = true;
       state.recognition = recognition;
+      processedCount = 0;
       $('mic-btn').classList.remove('active');
       $('mic-btn').classList.add('recording');
       $('voice-indicator').className = 'listening';
@@ -686,32 +689,36 @@
     };
 
     recognition.onresult = (event) => {
-      // In non-continuous mode, results reset each time.
-      // Just grab whatever is in this batch.
+      let newFinal = '';
       let interim = '';
-      let final = '';
-      for (let i = 0; i < event.results.length; i++) {
+
+      for (let i = processedCount; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          final += transcript;
+          newFinal += transcript;
+          processedCount = i + 1;
         } else {
           interim += transcript;
         }
       }
 
-      if (final) {
-        // Append finalized speech to whatever is currently in the textarea
-        const existing = userInput.value;
-        const spacer = existing && !existing.endsWith(' ') ? ' ' : '';
-        userInput.value = existing + spacer + final;
-      } else if (interim) {
-        // Show interim preview — store current real text so we can replace the preview
-        if (!state._preInterimText && state._preInterimText !== '') {
+      // Strip any interim preview before appending final text
+      const base = state._preInterimText != null ? state._preInterimText : userInput.value;
+
+      if (newFinal) {
+        const spacer = base && !base.endsWith(' ') ? ' ' : '';
+        userInput.value = base + spacer + newFinal;
+        state._preInterimText = null;
+      }
+
+      if (interim) {
+        // Save real text (after any final append) before showing preview
+        if (state._preInterimText == null) {
           state._preInterimText = userInput.value;
         }
-        userInput.value = state._preInterimText +
-          (state._preInterimText && !state._preInterimText.endsWith(' ') ? ' ' : '') +
-          interim;
+        const current = state._preInterimText;
+        const spacer = current && !current.endsWith(' ') ? ' ' : '';
+        userInput.value = current + spacer + interim;
       }
 
       userInput.style.height = 'auto';
@@ -719,10 +726,8 @@
     };
 
     recognition.onerror = async (event) => {
-      stopRecording();
-
       if (event.error === 'not-allowed') {
-        // Permission not granted — open the permission tab
+        stopRecording();
         const micBtn = $('mic-btn');
         const voiceLabel = $('voice-label');
         micBtn.classList.add('active');
@@ -748,22 +753,11 @@
     };
 
     recognition.onend = () => {
-      // Clear interim tracking
-      delete state._preInterimText;
-
-      // Auto-restart if still recording (simulates continuous mode but with clean state)
+      state._preInterimText = null;
+      // Restart if still recording (Chrome stops continuous after ~60s of silence)
       if (state.isRecording) {
         try {
-          const newRecognition = new SpeechRecognition();
-          newRecognition.lang = 'en-US';
-          newRecognition.interimResults = true;
-          newRecognition.continuous = false;
-          newRecognition.onstart = recognition.onstart;
-          newRecognition.onresult = recognition.onresult;
-          newRecognition.onerror = recognition.onerror;
-          newRecognition.onend = recognition.onend;
-          state.recognition = newRecognition;
-          newRecognition.start();
+          startRecognition(SpeechRecognition);
         } catch {
           stopRecording();
         }
@@ -1050,21 +1044,45 @@
     if (!confirmed) return;
 
     await Storage.wipeAll();
+
+    // Reset all state
     state.apiKey = null;
     state.provider = 'ollama';
     state.model = 'llama3.1';
     state.style = 'balanced';
     state.sessionActive = false;
     state.messages = [];
+    state.problemData = null;
+    state.startTime = null;
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+    if (state.streamController) {
+      state.streamController.abort();
+      state.streamController = null;
+    }
 
+    // Stop voice
+    stopRecording();
+    window.speechSynthesis?.cancel();
+
+    // Reset all UI
     settingsOverlay.hidden = true;
     controls.hidden = true;
     chatContainer.hidden = true;
     inputArea.hidden = true;
+    $('voice-bar').hidden = true;
     summaryPanel.hidden = true;
     setupPanel.hidden = false;
+    startBtn.hidden = false;
+    endBtn.hidden = true;
+    messagesEl.textContent = '';
+    setText(timerEl, '00:00');
     $('api-key-input').value = '';
+    document.querySelectorAll('.mode-btn').forEach((btn) => { btn.disabled = false; });
     updateSetupUI();
+    requestProblemData();
     showError('All data wiped.');
   }
 
