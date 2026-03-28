@@ -18,7 +18,7 @@ AI-powered mock interview assistant for LeetCode, system design, and behavioral 
 ### 1. Install the extension
 
 ```bash
-git clone https://github.com/your-username/mock-assist.git
+git clone https://github.com/shsingh67/mock-assist.git
 ```
 
 1. Open `chrome://extensions`
