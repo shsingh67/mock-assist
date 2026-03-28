@@ -1,8 +1,3 @@
-/**
- * Content script for LeetCode pages.
- * Waits for the problem to render, extracts data, and sends it to the extension.
- */
-
 (() => {
   'use strict';
 
@@ -44,7 +39,6 @@
       subtree: true,
     });
 
-    // Safety timeout — stop watching after 15s
     setTimeout(cleanupObserver, 15000);
   }
 
@@ -55,7 +49,7 @@
     }
   }
 
-  // Handle SPA navigation (LeetCode uses client-side routing)
+  // Handle SPA navigation
   function watchForNavigation() {
     let currentPath = window.location.pathname;
 
@@ -69,7 +63,6 @@
     }, 1000);
   }
 
-  // Respond to extraction requests from the side panel
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'EXTRACT_PROBLEM') {
       const data = MockAssistExtractor.extractAll();
@@ -77,7 +70,6 @@
     }
   });
 
-  // Clean up on page unload
   window.addEventListener('beforeunload', () => {
     cleanupObserver();
     if (navInterval) {

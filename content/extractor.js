@@ -1,9 +1,3 @@
-/**
- * LeetCode problem extractor with cascading fallback selectors.
- * LeetCode uses hashed class names that change across deploys,
- * so we try multiple strategies to find the problem description.
- */
-
 const MockAssistExtractor = (() => {
   'use strict';
 
@@ -24,7 +18,7 @@ const MockAssistExtractor = (() => {
           return el.innerText.trim();
         }
       } catch {
-        // Invalid selector, skip
+        // ignore
       }
     }
     return heuristicExtract();
@@ -47,7 +41,6 @@ const MockAssistExtractor = (() => {
       }
     }
 
-    // Sort by length ascending (prefer smallest/most specific match)
     candidates.sort((a, b) => a.length - b.length);
 
     for (const { el } of candidates) {

@@ -1,9 +1,6 @@
 'use strict';
 
-// Enable side panel to open on action icon click
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-
-// Enable/disable side panel based on URL
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
 
@@ -22,14 +19,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Mic permission result from popup tab — side panel listens directly
   if (message.type === 'MIC_PERMISSION_RESULT') {
     return false;
   }
 
-  // Problem data from content script
   if (message.type === 'PROBLEM_DATA') {
     const tabId = sender.tab?.id;
     if (tabId) {
@@ -41,7 +35,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  // Side panel requesting problem data
   if (message.type === 'REQUEST_PROBLEM_DATA') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) {
@@ -56,13 +49,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     });
-    return true; // async
+    return true;
   }
 
   return false;
 });
 
-// Clean up on tab close
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.session.remove(`tab_${tabId}_isLeetCode`);
 });

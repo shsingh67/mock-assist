@@ -1,17 +1,8 @@
-/**
- * Popup window that requests microphone permission.
- *
- * This runs as a normal extension page in its own window, where Chrome
- * will properly show the "Allow microphone?" prompt. Once the user
- * responds, we send the result back to the service worker and close.
- */
-
 const statusEl = document.getElementById('status');
 
 (async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Permission granted — stop tracks immediately
     stream.getTracks().forEach((track) => track.stop());
 
     statusEl.className = 'status granted';

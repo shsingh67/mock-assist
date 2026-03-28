@@ -1,13 +1,8 @@
-/**
- * Mock Assist — Side Panel Application
- */
 (() => {
   'use strict';
 
-  // ── Constants ──
   const MAX_CONTEXT_LENGTH = 50000; // Max chars for context input
 
-  // ── State ──
   const state = {
     mode: 'coding',
     provider: 'ollama',
@@ -27,7 +22,6 @@
     micPausedForTTS: false,
   };
 
-  // ── DOM refs ──
   const $ = (id) => document.getElementById(id);
   const setupPanel = $('setup-panel');
   const sessionInfo = $('session-info');
@@ -47,14 +41,10 @@
   const contextText = $('context-text');
   const settingsOverlay = $('settings-overlay');
 
-  // ── Safe DOM helpers ──
-
-  /** Safely set text content (no XSS risk) */
   function setText(el, text) {
     if (el) el.textContent = text || '';
   }
 
-  /** Escape HTML to prevent XSS */
   function escapeHtml(str) {
     if (!str) return '';
     return str
@@ -64,7 +54,6 @@
       .replace(/"/g, '&quot;');
   }
 
-  /** Render markdown safely — all input is escaped first */
   function renderMarkdown(text) {
     if (!text) return '';
 
@@ -87,7 +76,6 @@
     return html;
   }
 
-  /** Build model dropdown options safely using DOM APIs */
   function populateModelDropdown(provider) {
     const select = $('settings-model');
     const models = AIClient.PROVIDERS[provider]?.models || [];
@@ -100,7 +88,6 @@
     }
   }
 
-  // ── Init ──
   async function init() {
     state.apiKey = await Storage.getApiKey();
     const settings = await Storage.getSettings();
@@ -118,7 +105,6 @@
     requestProblemData();
   }
 
-  // ── Events ──
   function bindEvents() {
     // Setup: provider selector
     document.querySelectorAll('.provider-btn').forEach((btn) => {
@@ -163,7 +149,6 @@
       }
     });
 
-    // Auto-resize textarea
     userInput.addEventListener('input', () => {
       userInput.style.height = 'auto';
       userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
@@ -184,7 +169,6 @@
     $('prompt-editor-close').addEventListener('click', closePromptEditor);
     $('prompt-save').addEventListener('click', savePrompts);
 
-    // Prompt tab switching
     document.querySelectorAll('.prompt-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.prompt-tab').forEach((t) => t.classList.remove('active'));
@@ -195,7 +179,6 @@
       });
     });
 
-    // Prompt reset buttons
     document.querySelectorAll('.prompt-reset-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const mode = btn.dataset.mode;
@@ -215,7 +198,6 @@
       }
     });
 
-    // Listen for problem data from content script
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.type === 'PROBLEM_DATA' && msg.payload) {
         state.problemData = msg.payload;
@@ -223,7 +205,6 @@
       }
     });
 
-    // Check session storage for problem data
     try {
       chrome.storage.session?.get('currentProblem', (result) => {
         if (chrome.runtime.lastError) return;
@@ -236,11 +217,9 @@
       // session storage not available
     }
 
-    // Cleanup on unload
     window.addEventListener('beforeunload', cleanup);
   }
 
-  /** Clean up all resources */
   function cleanup() {
     if (state.timerInterval) clearInterval(state.timerInterval);
     if (state.streamController) state.streamController.abort();
@@ -312,7 +291,6 @@
     const keyStatus = $('key-status');
     const saveBtn = $('save-key-btn');
 
-    // Auto-detect provider from key format
     const detected = AIClient.detectProvider(key);
     if (detected) {
       state.provider = detected;
@@ -404,7 +382,6 @@
     });
   }
 
-  // ── Interview Flow ──
   async function startInterview() {
     if (state.mode === 'coding' && !state.problemData?.description) {
       showError('Navigate to a LeetCode problem first, or switch to another mode.');
@@ -513,7 +490,6 @@
     showModeUI();
   }
 
-  // ── Chat ──
   async function sendMessage() {
     const text = userInput.value.trim();
     if (!text || !state.sessionActive) return;
@@ -553,7 +529,6 @@
         msgEl.classList.add('typing-indicator');
         scrollToBottom();
 
-        // Stream speech: speak complete sentences as they arrive
         if (state.ttsEnabled) {
           speechBuffer += chunk;
           const sentenceEnd = speechBuffer.search(/[.!?]\s/);
@@ -576,7 +551,6 @@
           speakText(speechBuffer.trim(), false);
         }
 
-        // Restart mic after all TTS finishes (or immediately if TTS is off)
         if (state._micWasActive) {
           waitForTTSDone(() => {
             $('voice-indicator').className = '';
@@ -602,7 +576,6 @@
     );
   }
 
-  // ── UI Helpers ──
   function addMessageToUI(role, content) {
     const div = document.createElement('div');
     div.className = `message message-${escapeHtml(role)}`;
@@ -644,8 +617,6 @@
     }
   }
 
-  // ── Voice: Speech-to-Text ──
-
   async function toggleMic() {
     if (state.isRecording) {
       stopRecording();
@@ -658,7 +629,6 @@
       return;
     }
 
-    // Skip getUserMedia check — side panels can't reliably call it.
     // Just start recognition directly. If permission is needed,
     // the onerror handler will catch 'not-allowed' and open the permission tab.
     startRecognition(SpeechRecognition);
@@ -718,7 +688,6 @@
         }
       }
 
-      // Strip any interim preview before appending final text
       const base = state._preInterimText != null ? state._preInterimText : userInput.value;
 
       if (newFinal) {
@@ -728,7 +697,7 @@
       }
 
       if (interim) {
-        // Save real text (after any final append) before showing preview
+
         if (state._preInterimText == null) {
           state._preInterimText = userInput.value;
         }
@@ -795,8 +764,6 @@
     setText($('voice-label'), 'Ready');
   }
 
-
-  /** Wait until speechSynthesis is done speaking, then call the callback. */
   function waitForTTSDone(callback) {
     if (!window.speechSynthesis || !window.speechSynthesis.speaking) {
       callback();
@@ -809,8 +776,6 @@
       }
     }, 200);
   }
-
-  // ── Voice: Text-to-Speech ──
 
   function toggleTTS() {
     state.ttsEnabled = !state.ttsEnabled;
@@ -857,7 +822,6 @@
 
     if (cancelPrevious) window.speechSynthesis.cancel();
 
-    // Strip markdown and special characters for clean speech
     const clean = text
       .replace(/```[\s\S]*?```/g, ' code block ')
       .replace(/`([^`]+)`/g, '$1')
@@ -957,10 +921,6 @@
     return chunks;
   }
 
-  // ── Settings ──
-
-  // ── Prompt Editor ──
-
   async function openPromptEditor() {
     settingsOverlay.hidden = true; // Close settings first
 
@@ -990,7 +950,7 @@
     await Prompts.saveTemplate('behavioral', $('prompt-behavioral').value);
 
     $('prompt-editor').hidden = true;
-    showError('Prompts saved!'); // Reusing error toast for success notification
+    showError('Prompts saved!');
   }
 
   function openSettings() {
@@ -1088,6 +1048,5 @@
     showError('All data wiped.');
   }
 
-  // ── Boot ──
   init();
 })();
