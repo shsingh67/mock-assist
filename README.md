@@ -42,33 +42,6 @@ git clone https://github.com/shsingh67/mock-assist.git
 
 For system design or behavioral mode, switch modes at the top and enter a topic or job description.
 
-## Project Structure
-
-```
-mock-assist/
-├── manifest.json          # Chrome extension manifest (MV3)
-├── background/
-│   └── service-worker.js  # Extension lifecycle and message routing
-├── content/
-│   ├── extractor.js       # LeetCode DOM extraction with fallback selectors
-│   └── content.js         # Content script: monitors pages, sends problem data
-├── lib/
-│   ├── claude-api.js      # Multi-provider AI client (streaming, no SDKs)
-│   ├── prompts.js         # Interview prompt templates
-│   └── storage.js         # Encrypted storage layer (AES-256-GCM)
-├── sidepanel/
-│   ├── sidepanel.html     # Side panel UI
-│   ├── sidepanel.css      # Styling and design system
-│   └── sidepanel.js       # Main application logic
-├── mic/
-│   ├── mic-prompt.html    # Microphone permission popup
-│   └── mic-prompt.js      # Permission request handler
-└── icons/
-    ├── icon16.png
-    ├── icon48.png
-    └── icon128.png
-```
-
 ## Interview Modes
 
 ### Coding
