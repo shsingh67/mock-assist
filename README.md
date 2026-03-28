@@ -131,7 +131,7 @@ No build step required. Edit files and reload the extension:
 ### Building for distribution
 
 ```bash
-zip -r mock-assist.zip . -x '*.git*' -x '.claude/*' -x '*.DS_Store' -x '*.md' -x 'LICENSE'
+zip -r mock-assist.zip .
 ```
 
 ## License
