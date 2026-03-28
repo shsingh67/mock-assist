@@ -41,4 +41,4 @@ If this policy changes, the update will be reflected in this file with a new dat
 
 ## Contact
 
-For questions about this privacy policy, please open an issue on the [GitHub repository](https://github.com/your-username/mock-assist).
+For questions about this privacy policy, please open an issue on the [GitHub repository](https://github.com/shsingh67/mock-assist).
